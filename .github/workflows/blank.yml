@@ -1,0 +1,31 @@
+name: Checklist CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Display checklist
+        run: echo "## Checklist for Pull Request\n- [ ] S'assurer d'avoir pull la version avant de faire des modifications\n- [ ] Avoir un code commenté\n- [ ] Se mettre sur la branche dev"
+
+      - name: User input
+        id: checklist
+        run: |
+          echo "Please check the appropriate boxes (y/n):"
+          read -p "S'assurer d'avoir pull la version avant de faire des modifications? (y/n) " pull_check
+          read -p "Avoir un code commenté? (y/n) " comment_check
+          read -p "Se mettre sur la branche dev? (y/n) " dev_branch_check
+          echo "::set-output name=pull_check::${pull_check}"
+          echo "::set-output name=comment_check::${comment_check}"
+          echo "::set-output name=dev_branch_check::${dev_branch_check}"
+
+      - name: Validate checklist
+        run: echo "Checklist status - Pull: ${{ steps.checklist.outputs.pull_check }}, Comment: ${{ steps.checklist.outputs.comment_check }}, Dev Branch: ${{ steps.checklist.outputs.dev_branch_check }}"
