@@ -458,3 +458,219 @@ def analyze_acm(df):
 
     # ACM - Projection en couleur
     acm.mapping_col(num_x_axis=1, num_y_axis=2)
+
+
+#Fonction pour modelisation
+def preprocess_and_split_data(base_model):
+    # Affichage des valeurs uniques avant la modification
+    print("Valeurs uniques avant la modification :", base_model['Medal'].unique())
+
+    # Regroupement des 3 médailles en une modalité médaille
+    base_model['Medal'].replace({
+        'Gold': 'medaille',
+        'Silver': 'medaille',
+        'Bronze': 'medaille',
+    }, inplace=True)
+
+    # Affichage des valeurs uniques après la modification
+    print("Valeurs uniques après la modification :", base_model['Medal'].unique())
+
+    # y variable expliquée et X les variables explicatives
+    y = base_model.Medal
+    X = base_model.drop('Medal', axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
+
+    # Cette étape permet de ne pas créer des dummy pour réaliser les modèles
+    cat_columns = ['Sex', 'NOC', 'Sport', 'Classe_age', 'Classe_height', 'Classe_weight']
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(drop='first'), cat_columns)
+        ],
+        remainder='drop'
+    )
+
+    X_train_encoded = preprocessor.fit_transform(X_train)
+    X_test_encoded = preprocessor.transform(X_test)
+
+    return X_train_encoded, X_test_encoded, y_train, y_test
+
+
+#Fonction regression logistique 
+def train_and_evaluate_logistic_regression(X_train_encoded, X_test_encoded, y_train, y_test):
+    # Initialisation du modèle de régression logistique
+    LG = LogisticRegression(random_state=0, max_iter=10000)
+
+    # Entraînement du modèle
+    LG.fit(X_train_encoded, y_train)
+
+    # Score sur les données d'entraînement
+    training_score = LG.score(X_train_encoded, y_train)
+    print("Training score:", training_score)
+
+    # Score sur les données de test
+    test_score = LG.score(X_test_encoded, y_test)
+    print("Test score:", test_score)
+
+    # Prédiction sur les données d'entraînement et de test
+    y_train_pred = LG.predict(X_train_encoded)
+    y_test_pred = LG.predict(X_test_encoded)
+
+    # Matrice de confusion pour les données d'entraînement
+    conf_matrix_train = confusion_matrix(y_train, y_train_pred)
+    print("\nMatrice de confusion (Training Data):")
+    print(conf_matrix_train)
+
+    # Matrice de confusion pour les données de test
+    conf_matrix_test = confusion_matrix(y_test, y_test_pred)
+    print("\nMatrice de confusion (Test Data):")
+    print(conf_matrix_test)
+
+    # Calcul des indicateurs de performance du modèle
+    TP = conf_matrix_test[0, 0]
+    FP = conf_matrix_test[1, 0]
+    FN = conf_matrix_test[0, 1]
+    TN = conf_matrix_test[1, 1]
+
+    sensibilite = round((TP / (TP + FN)), 2) * 100
+    specificite = round((TN / (TN + FP)), 2) * 100
+    taux_erreur_alpha = round((FN / (TP + FN)), 2) * 100
+    taux_erreur_beta = (FP / (FP + TN)) * 100
+    taux_erreur_moyen = round(((FP + FN) / (FP + FN + TP + TN)), 2) * 100
+
+    print("\nIndicateurs de performance du modèle :")
+    print("Sensibilité:", sensibilite)
+    print("Spécificité:", specificite)
+    print("Taux d'erreur alpha:", taux_erreur_alpha)
+    print("Taux d'erreur beta:", taux_erreur_beta)
+    print("Taux d'erreur moyen:", taux_erreur_moyen)
+
+    return LG  # Retourne le modèle entraîné
+
+#Focntion Random Forest
+
+def train_and_evaluate_random_forest(X_train_encoded, X_test_encoded, y_train, y_test):
+    # Créer une instance du modèle Random Forest
+    RF = RandomForestClassifier(random_state=0, n_estimators=100)
+
+    # Entraîner le modèle sur les données d'entraînement encodées
+    RF.fit(X_train_encoded, y_train)
+
+    # Score sur les données d'entraînement
+    training_score_RF = RF.score(X_train_encoded, y_train)
+    print("Training score:", training_score_RF)
+
+    # Score sur les données de test
+    test_score_RF = RF.score(X_test_encoded, y_test)
+    print("Test score:", test_score_RF)
+
+    # Prédiction sur les données d'entraînement et de test
+    y_train_pred_RF = RF.predict(X_train_encoded)
+    y_test_pred_RF = RF.predict(X_test_encoded)
+
+    # Matrice de confusion pour les données d'entraînement
+    conf_matrix_train_RF = confusion_matrix(y_train, y_train_pred_RF)
+    print("\nMatrice de confusion (Training Data):")
+    print(conf_matrix_train_RF)
+
+    # Matrice de confusion pour les données de test
+    conf_matrix_test_RF = confusion_matrix(y_test, y_test_pred_RF)
+    print("\nMatrice de confusion (Test Data):")
+    print(conf_matrix_test_RF)
+
+    # Calcul des indicateurs de performance du modèle
+    TP_RF = conf_matrix_test_RF[0, 0]
+    FP_RF = conf_matrix_test_RF[1, 0]
+    FN_RF = conf_matrix_test_RF[0, 1]
+    TN_RF = conf_matrix_test_RF[1, 1]
+
+    sensibilite_RF = round((TP_RF / (TP_RF + FN_RF)), 2) * 100
+    specificite_RF = round((TN_RF / (TN_RF + FP_RF)), 2) * 100
+    taux_erreur_alpha_RF = round((FN_RF / (TP_RF + FN_RF)), 2) * 100
+    taux_erreur_beta_RF = (FP_RF / (FP_RF + TN_RF)) * 100
+    taux_erreur_moyen_RF = round(((FP_RF + FN_RF) / (FP_RF + FN_RF + TP_RF + TN_RF)), 2) * 100
+
+    print("\nIndicateurs de performance du modèle :")
+    print("Sensibilité:", sensibilite_RF)
+    print("Spécificité:", specificite_RF)
+    print("Taux d'erreur alpha:", taux_erreur_alpha_RF)
+    print("Taux d'erreur beta:", taux_erreur_beta_RF)
+    print("Taux d'erreur moyen:", taux_erreur_moyen_RF)
+
+    return RF  
+
+
+#Fonction knn
+
+def choose_k_and_evaluate_knn(X_train_encoded, X_test_encoded, y_train, y_test, max_k=50):
+    # Choix du k optimal
+    error_rate = []
+    k_values = list(filter(lambda x: x % 2 == 1, range(1, max_k + 1, 2)))
+
+    for k in k_values:
+        knn = KNeighborsClassifier(n_neighbors=k)
+        knn.fit(X_train_encoded, y_train)
+        pred_i = knn.predict(X_test_encoded)
+        error_rate.append(np.mean(pred_i != y_test))
+
+    best_k_index = error_rate.index(np.min(error_rate))
+    best_k = k_values[best_k_index]
+    print("Meilleur k:", best_k)
+
+    # Figure qui montre le k optimal
+    plt.figure(figsize=(10, 10))
+    plt.plot(k_values, error_rate, color='blue', linestyle='dashed', marker='o',
+             markerfacecolor='red', markersize=10)
+    plt.title('Error Rate vs. K Value')
+    plt.xlabel('K')
+    plt.ylabel('Error Rate')
+    plt.show()
+
+    # Créer une instance du modèle k-NN avec le meilleur k
+    knn = KNeighborsClassifier(n_neighbors=best_k)
+
+    # Entraîner le modèle sur les données d'entraînement encodées
+    knn.fit(X_train_encoded, y_train)
+
+    # Score sur les données d'entraînement
+    training_score_knn = knn.score(X_train_encoded, y_train)
+    print("\nTraining score:", training_score_knn)
+
+    # Score sur les données de test
+    test_score_knn = knn.score(X_test_encoded, y_test)
+    print("Test score:", test_score_knn)
+
+    # Prédiction sur les données d'entraînement et de test
+    y_train_pred_knn = knn.predict(X_train_encoded)
+    y_test_pred_knn = knn.predict(X_test_encoded)
+
+    # Matrice de confusion pour les données d'entraînement
+    conf_matrix_train_knn = confusion_matrix(y_train, y_train_pred_knn)
+    print("\nMatrice de confusion (Training Data):")
+    print(conf_matrix_train_knn)
+
+    # Matrice de confusion pour les données de test
+    conf_matrix_test_knn = confusion_matrix(y_test, y_test_pred_knn)
+    print("\nMatrice de confusion (Test Data):")
+    print(conf_matrix_test_knn)
+
+    # Calcul des indicateurs de performance du modèle
+    TP_knn = conf_matrix_test_knn[0, 0]
+    FP_knn = conf_matrix_test_knn[1, 0]
+    FN_knn = conf_matrix_test_knn[0, 1]
+    TN_knn = conf_matrix_test_knn[1, 1]
+
+    sensibilite_knn = round((TP_knn / (TP_knn + FN_knn)), 2) * 100
+    specificite_knn = round((TN_knn / (TN_knn + FP_knn)), 2) * 100
+    taux_erreur_alpha_knn = round((FN_knn / (TP_knn + FN_knn)), 2) * 100
+    taux_erreur_beta_knn = (FP_knn / (FP_knn + TN_knn)) * 100
+    taux_erreur_moyen_knn = round(((FP_knn + FN_knn) / (FP_knn + FN_knn + TP_knn + TN_knn)), 2) * 100
+
+    print("\nIndicateurs de performance du modèle :")
+    print("Sensibilité:", sensibilite_knn)
+    print("Spécificité:", specificite_knn)
+    print("Taux d'erreur alpha:", taux_erreur_alpha_knn)
+    print("Taux d'erreur beta:", taux_erreur_beta_knn)
+    print("Taux d'erreur moyen:", taux_erreur_moyen_knn)
+
+    return knn 
