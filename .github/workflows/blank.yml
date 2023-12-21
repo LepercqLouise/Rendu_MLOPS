@@ -3,7 +3,7 @@ name: Checklist CI/CD
 on:
   pull_request:
     branches:
-      - main
+      - dev
 
 jobs:
   checklist:
@@ -26,6 +26,7 @@ jobs:
           echo "::set-output name=pull_check::${pull_check}"
           echo "::set-output name=comment_check::${comment_check}"
           echo "::set-output name=dev_branch_check::${dev_branch_check}"
-
+                
       - name: Validate checklist
-        run: echo "Checklist status - Pull: ${{ steps.checklist.outputs.pull_check }}, Comment: ${{ steps.checklist.outputs.comment_check }}, Dev Branch: ${{ steps.checklist.outputs.dev_branch_check }}"
+        run: |
+          echo "Checklist status - Pull: ${{ steps.checklist.outputs['pull_check'] }}, Comment: ${{ steps.checklist.outputs['comment_check'] }}, Dev Branch: ${{ steps.checklist.outputs['dev_branch_check'] }}"
