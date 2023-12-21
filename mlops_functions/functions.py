@@ -395,3 +395,66 @@ def plot_cramer_matrix(cramer_df):
     sns.heatmap(cramer_df, annot=True, cmap='BuGn', fmt=".2f", mask=mask)
     plt.title("Matrice de corrélation - V de Cramer")
     plt.show()
+
+
+
+#Fonction pour ACM 
+def analyze_acm(df):
+    # Remplacer les valeurs manquantes de la variable 'Medal' par 'Pas_de_médaille'
+    df['Medal'].fillna('Pas_de_médaille', inplace=True)
+
+    # Utilisation du package fanalysis - MCA
+    acm = MCA()
+    acm.fit(df.values)
+
+    # Afficher les valeurs propres
+    eigenvalues = acm.eig_
+
+    # Calculer le pourcentage de chaque valeur propre
+    total_variance = sum(eigenvalues[0])
+    percentage_var = [(value / total_variance) * 100 for value in eigenvalues[0]]
+
+    # Tracer le diagramme en barres des valeurs propres en pourcentage
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(range(1, len(percentage_var) + 1), percentage_var, color=palette, edgecolor='black')
+    plt.xlabel('Composante Principale')
+    plt.ylabel('Pourcentage de Variance Expliquée')
+    plt.title('Diagramme en Barres des Valeurs Propres en Pourcentage - ACM')
+    plt.xticks(range(1, len(percentage_var) + 1))
+
+    # Ajouter les étiquettes de valeur uniquement pour les deux premières barres
+    for i, (bar, value) in enumerate(zip(bars, percentage_var)):
+        if i < 2:
+            plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.2, f'{value:.2f}%',
+                     ha='center', va='bottom', color='black', fontsize=8)
+
+    plt.show()
+
+    # Information fournie par l'ACM
+    info_col = acm.col_topandas()
+    print(info_col.columns)
+
+    # Coordonnées des modalités pour l'axe 1 et 2
+    coord_col = info_col[['col_coord_dim1', 'col_coord_dim2']]
+    print(coord_col)
+
+    # Contributions des modalités pour l'axe 1 et 2
+    contrib_col = pd.DataFrame(info_col[['col_contrib_dim1', 'col_contrib_dim2']])
+    print(contrib_col)
+
+    # ACM - Projection des colonnes
+    fig, ax = plt.subplots(figsize=(7, 7))
+    ax.axis([-2.2, +2.2, -1.2, +1.5])
+    ax.plot([-2.2, +2.2], [0, 0], color="silver", linestyle="--")
+    ax.plot([0, 0], [-2.2, +2.2], color='silver', linestyle="--")
+    ax.set_xlabel('Dim.1')
+    ax.set_ylabel('Dim.2')
+    plt.title("Modalité")
+
+    for x, y, lbl in zip(coord_col.iloc[:, 0], coord_col.iloc[:, 1], coord_col.index):
+        ax.text(x, y, lbl, horizontalalignment='center', verticalalignment='center', fontsize=7)
+
+    plt.show()
+
+    # ACM - Projection en couleur
+    acm.mapping_col(num_x_axis=1, num_y_axis=2)
