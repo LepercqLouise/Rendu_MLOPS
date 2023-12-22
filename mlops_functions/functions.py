@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.neighbors import KNeighborsClassifier
 import scipy
-
+import itertools
 
 #Fonction de chargement
 
@@ -56,44 +56,44 @@ def drop_missing_values(df, columns_to_check):
 
 #Fonction de regroupement
 
-def create_age_classes(df):
+def create_age_classes(base_summer):
     # Intervalles d'âge
     intervalles = [0, 21, 25, 33, float('inf')]
     labels = ['< 21 ans', '21 - 24 ans', '25-32 ans', '> 32 ans']
     
     # Nouvelle colonne "Classe_age" basée sur les intervalles définis
-    df['Classe_age'] = pd.cut(df['Age'], bins=intervalles, labels=labels, right=False)
+    base_summer['Classe_age'] = pd.cut(base_summer['Age'], bins=intervalles, labels=labels, right=False)
     
     # Convertir la colonne "Classe_age" en catégorie si nécessaire
-    df['Classe_age'] = df['Classe_age'].astype('category')
+    base_summer['Classe_age'] = base_summer['Classe_age'].astype('category')
     
-    return df[['Age', 'Classe_age']]
+    return base_summer[['Age', 'Classe_age']]
 
-def create_height_classes(df):
+def create_height_classes(base_summer):
     # Intervalles de taille
     intervalles_taille = [float('-inf'), 165, 173, 186, float('inf')]
     labels_taille = ['< 165 cm', '165 - 172 cm', '173 - 185 cm', '> 185 cm']
     
     # Nouvelle colonne "Classe_height" basée sur les intervalles définis
-    df['Classe_height'] = pd.cut(df['Height'], bins=intervalles_taille, labels=labels_taille, right=False)
+    base_summer['Classe_height'] = pd.cut(base_summer['Height'], bins=intervalles_taille, labels=labels_taille, right=False)
     
     # Convertir la colonne "Classe_height" en catégorie si nécessaire
-    df['Classe_height'] = df['Classe_height'].astype('category')
+    base_summer['Classe_height'] = base_summer['Classe_height'].astype('category')
     
-    return df[['Height', 'Classe_height']]
+    return base_summer[['Height', 'Classe_height']]
 
-def create_weight_classes(df):
+def create_weight_classes(base_summer):
     # Intervalles de poids
     intervalles_poids = [float('-inf'), 65, 74, 81, float('inf')]
     labels_poids = ['< 65 kg', '65 - 73 kg', '74 - 80 kg', '> 80 kg']
     
     # Nouvelle colonne "Classe_weight" basée sur les intervalles définis
-    df['Classe_weight'] = pd.cut(df['Weight'], bins=intervalles_poids, labels=labels_poids, right=False)
+    base_summer['Classe_weight'] = pd.cut(base_summer['Weight'], bins=intervalles_poids, labels=labels_poids, right=False)
     
     # Convertir la colonne "Classe_weight" en catégorie si nécessaire
-    df['Classe_weight'] = df['Classe_weight'].astype('category')
+    base_summer['Classe_weight'] = base_summer['Classe_weight'].astype('category')
     
-    return df[['Weight', 'Classe_weight']]
+    return base_summer[['Weight', 'Classe_weight']]
 
 
 
@@ -357,7 +357,6 @@ def transform_base_ACM(df):
 
 
 #Fonction de v de cramer 
-
 def calculate_cramer_v(df, categorical_vars):
     # Créez une table de contingence pour chaque paire de variables
     contingency_tables = {}
@@ -398,14 +397,31 @@ def plot_cramer_matrix(cramer_df):
 
 
 
+# Fonction pour afficher la matrice de corrélation
+def plot_cramer_matrix(cramer_df):
+    # Créer une masque pour la moitié supérieure de la matrice, en excluant la diagonale inférieure
+    mask = np.triu(np.ones_like(cramer_df, dtype=bool), k=1)
+
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(cramer_df, annot=True, cmap='BuGn', fmt=".2f", mask=mask)
+    plt.title("Matrice de corrélation - V de Cramer")
+    plt.show()
+
 #Fonction pour ACM 
 def analyze_acm(df):
+    # Sélectionnez les colonnes catégorielles
+    categorical_vars = df.select_dtypes(include='object').columns
+    df_cat = df[categorical_vars]
+
     # Remplacer les valeurs manquantes de la variable 'Medal' par 'Pas_de_médaille'
-    df['Medal'].fillna('Pas_de_médaille', inplace=True)
+    df_cat['Medal'].fillna('Pas_de_médaille', inplace=True)
+
+    # Convertir les variables catégorielles en type "category"
+    df_cat = df_cat.apply(lambda col: col.astype(str))
 
     # Utilisation du package fanalysis - MCA
     acm = MCA()
-    acm.fit(df.values)
+    acm.fit(df_cat.values)
 
     # Afficher les valeurs propres
     eigenvalues = acm.eig_
@@ -416,7 +432,7 @@ def analyze_acm(df):
 
     # Tracer le diagramme en barres des valeurs propres en pourcentage
     plt.figure(figsize=(10, 6))
-    bars = plt.bar(range(1, len(percentage_var) + 1), percentage_var, color=palette, edgecolor='black')
+    bars = plt.bar(range(1, len(percentage_var) + 1), percentage_var, color='skyblue', edgecolor='black')
     plt.xlabel('Composante Principale')
     plt.ylabel('Pourcentage de Variance Expliquée')
     plt.title('Diagramme en Barres des Valeurs Propres en Pourcentage - ACM')
@@ -430,19 +446,16 @@ def analyze_acm(df):
 
     plt.show()
 
-    # Information fournie par l'ACM
+    # Reste du code pour l'analyse des coordonnées et contributions
     info_col = acm.col_topandas()
     print(info_col.columns)
 
-    # Coordonnées des modalités pour l'axe 1 et 2
     coord_col = info_col[['col_coord_dim1', 'col_coord_dim2']]
     print(coord_col)
 
-    # Contributions des modalités pour l'axe 1 et 2
     contrib_col = pd.DataFrame(info_col[['col_contrib_dim1', 'col_contrib_dim2']])
     print(contrib_col)
 
-    # ACM - Projection des colonnes
     fig, ax = plt.subplots(figsize=(7, 7))
     ax.axis([-2.2, +2.2, -1.2, +1.5])
     ax.plot([-2.2, +2.2], [0, 0], color="silver", linestyle="--")
@@ -456,7 +469,6 @@ def analyze_acm(df):
 
     plt.show()
 
-    # ACM - Projection en couleur
     acm.mapping_col(num_x_axis=1, num_y_axis=2)
 
 
