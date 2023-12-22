@@ -56,44 +56,44 @@ def drop_missing_values(df, columns_to_check):
 
 #Fonction de regroupement
 
-def create_age_classes(base_summer):
+def create_age_classes(df):
     # Intervalles d'âge
     intervalles = [0, 21, 25, 33, float('inf')]
     labels = ['< 21 ans', '21 - 24 ans', '25-32 ans', '> 32 ans']
     
     # Nouvelle colonne "Classe_age" basée sur les intervalles définis
-    base_summer['Classe_age'] = pd.cut(base_summer['Age'], bins=intervalles, labels=labels, right=False)
+    df['Classe_age'] = pd.cut(df['Age'], bins=intervalles, labels=labels, right=False)
     
     # Convertir la colonne "Classe_age" en catégorie si nécessaire
-    base_summer['Classe_age'] = base_summer['Classe_age'].astype('category')
+    df['Classe_age'] = df['Classe_age'].astype('category')
     
-    return base_summer[['Age', 'Classe_age']]
+    return df[['Age', 'Classe_age']]
 
-def create_height_classes(base_summer):
+def create_height_classes(df):
     # Intervalles de taille
     intervalles_taille = [float('-inf'), 165, 173, 186, float('inf')]
     labels_taille = ['< 165 cm', '165 - 172 cm', '173 - 185 cm', '> 185 cm']
     
     # Nouvelle colonne "Classe_height" basée sur les intervalles définis
-    base_summer['Classe_height'] = pd.cut(base_summer['Height'], bins=intervalles_taille, labels=labels_taille, right=False)
+    df['Classe_height'] = pd.cut(df['Height'], bins=intervalles_taille, labels=labels_taille, right=False)
     
     # Convertir la colonne "Classe_height" en catégorie si nécessaire
-    base_summer['Classe_height'] = base_summer['Classe_height'].astype('category')
+    df['Classe_height'] = df['Classe_height'].astype('category')
     
-    return base_summer[['Height', 'Classe_height']]
+    return df[['Height', 'Classe_height']]
 
-def create_weight_classes(base_summer):
+def create_weight_classes(df):
     # Intervalles de poids
     intervalles_poids = [float('-inf'), 65, 74, 81, float('inf')]
     labels_poids = ['< 65 kg', '65 - 73 kg', '74 - 80 kg', '> 80 kg']
     
     # Nouvelle colonne "Classe_weight" basée sur les intervalles définis
-    base_summer['Classe_weight'] = pd.cut(base_summer['Weight'], bins=intervalles_poids, labels=labels_poids, right=False)
+    df['Classe_weight'] = pd.cut(df['Weight'], bins=intervalles_poids, labels=labels_poids, right=False)
     
     # Convertir la colonne "Classe_weight" en catégorie si nécessaire
-    base_summer['Classe_weight'] = base_summer['Classe_weight'].astype('category')
+    df['Classe_weight'] = df['Classe_weight'].astype('category')
     
-    return base_summer[['Weight', 'Classe_weight']]
+    return df[['Weight', 'Classe_weight']]
 
 
 
@@ -409,19 +409,10 @@ def plot_cramer_matrix(cramer_df):
 
 #Fonction pour ACM 
 def analyze_acm(df):
-    # Sélectionnez les colonnes catégorielles
-    categorical_vars = df.select_dtypes(include='object').columns
-    df_cat = df[categorical_vars]
-
-    # Remplacer les valeurs manquantes de la variable 'Medal' par 'Pas_de_médaille'
-    df_cat['Medal'].fillna('Pas_de_médaille', inplace=True)
-
-    # Convertir les variables catégorielles en type "category"
-    df_cat = df_cat.apply(lambda col: col.astype(str))
-
+    
     # Utilisation du package fanalysis - MCA
     acm = MCA()
-    acm.fit(df_cat.values)
+    acm.fit(df.values)
 
     # Afficher les valeurs propres
     eigenvalues = acm.eig_
@@ -430,9 +421,14 @@ def analyze_acm(df):
     total_variance = sum(eigenvalues[0])
     percentage_var = [(value / total_variance) * 100 for value in eigenvalues[0]]
 
+    # Utiliser une palette de couleurs Seaborn et inverser l'ordre
+    sns.set(style="whitegrid")
+    palette = sns.color_palette("BuGn", len(percentage_var))
+    palette = palette[::-1]  # Inverser l'ordre des couleurs
+
     # Tracer le diagramme en barres des valeurs propres en pourcentage
     plt.figure(figsize=(10, 6))
-    bars = plt.bar(range(1, len(percentage_var) + 1), percentage_var, color='skyblue', edgecolor='black')
+    bars = plt.bar(range(1, len(percentage_var) + 1), percentage_var, color=palette, edgecolor='black')
     plt.xlabel('Composante Principale')
     plt.ylabel('Pourcentage de Variance Expliquée')
     plt.title('Diagramme en Barres des Valeurs Propres en Pourcentage - ACM')
