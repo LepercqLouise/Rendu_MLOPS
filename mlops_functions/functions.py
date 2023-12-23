@@ -469,6 +469,18 @@ def analyze_acm(df):
 
 
 #Fonction pour modelisation
+def define_preprocessor():
+    cat_columns = ['Sex', 'NOC', 'Sport', 'Classe_age', 'Classe_height', 'Classe_weight']
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(drop='first'), cat_columns)
+        ],
+        remainder='drop'
+    )
+    
+    return preprocessor, cat_columns
+
 def preprocess_and_split_data(base_model):
     # Affichage des valeurs uniques avant la modification
     print("Valeurs uniques avant la modification :", base_model['Medal'].unique())
@@ -488,20 +500,17 @@ def preprocess_and_split_data(base_model):
     X = base_model.drop('Medal', axis=1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
 
-    # Cette étape permet de ne pas créer des dummy pour réaliser les modèles
-    cat_columns = ['Sex', 'NOC', 'Sport', 'Classe_age', 'Classe_height', 'Classe_weight']
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('cat', OneHotEncoder(drop='first'), cat_columns)
-        ],
-        remainder='drop'
-    )
+    # Utiliser la fonction pour définir le preprocessor et cat_columns
+    preprocessor, cat_columns = define_preprocessor()
 
     X_train_encoded = preprocessor.fit_transform(X_train)
     X_test_encoded = preprocessor.transform(X_test)
 
-    return X_train_encoded, X_test_encoded, y_train, y_test
+    # Convertir la matrice creuse en DataFrame tout en conservant les noms de colonnes
+    X_train_encoded = pd.DataFrame.sparse.from_spmatrix(X_train_encoded, columns=preprocessor.get_feature_names_out(cat_columns))
+    X_test_encoded = pd.DataFrame.sparse.from_spmatrix(X_test_encoded, columns=preprocessor.get_feature_names_out(cat_columns))
+
+    return X_train_encoded, X_test_encoded, y_train, y_test, preprocessor, cat_columns
 
 
 #Fonction regression logistique 
@@ -682,3 +691,52 @@ def choose_k_and_evaluate_knn(X_train_encoded, X_test_encoded, y_train, y_test, 
     print("Taux d'erreur moyen:", taux_erreur_moyen_knn)
 
     return knn 
+
+
+# Fonction interpretation modele logistique
+def analyze_logistic_regression(LG, preprocessor, X_train_encoded, cat_columns):
+    # Obtenez les coefficients directeurs associés aux modalités
+    coefficients = LG.coef_
+
+    # Obtenez le nom des colonnes catégorielles après la transformation
+    if isinstance(preprocessor, ColumnTransformer):
+        cat_column_names = preprocessor.named_transformers_['cat'].get_feature_names_out(cat_columns)
+    else:
+        cat_column_names = cat_columns
+
+    # Associez les coefficients aux noms des colonnes
+    coefficients_dict = dict(zip(cat_column_names, coefficients[0]))
+
+    # Affichez les coefficients avec les noms des colonnes associés
+    for variable, coef in coefficients_dict.items():
+        print(f"{variable}: {coef}")
+
+    # Obtenez le coefficient de l'individu de référence
+    intercept = LG.intercept_
+    print(f"Intercept: {intercept}")
+
+    # Obtenez les probabilités prédites
+    predicted_probabilities = LG.predict_proba(X_train_encoded)
+
+    # Calculez les z-scores des coefficients
+    z_scores = np.zeros(shape=(len(coefficients[0]),))
+    for index, coef in enumerate(coefficients[0]):
+        z_scores[index] = coef / np.std(predicted_probabilities[:, 1])
+
+    # Convertissez les z-scores en p-values approximatives
+    p_values = scipy.stats.norm.sf(abs(z_scores))
+
+    # Créez un dictionnaire pour associer les noms de colonnes après la transformation aux p-values
+    p_values_dict = dict(zip(cat_column_names, p_values))
+
+    # Affichez les associations entre les modalités et les p-values
+    for column_name, p_value in p_values_dict.items():
+        if p_value < 0.001:
+            print(f"{column_name}: <0.001")
+        else:
+            print(f"{column_name}: {p_value:.3f}")
+
+
+
+
+
