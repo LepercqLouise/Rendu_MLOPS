@@ -8,13 +8,22 @@ colors = ['#008030', '#008080', '#00A86B', '#4CAF50', '#7CFC00']
 
 def plot_sex_pie_chart(data, title):
     plt.figure(figsize=(6, 6))
-    data['Sex'].value_counts().plot.pie(autopct='%1.1f%%', shadow=True, startangle=15, colors=['lightblue', 'lightcoral'])
+    colors = ['lightblue', 'lightcoral']
+    data['Sex'].value_counts().plot.pie(autopct='%1.1f%%', shadow=True, startangle=15, colors=colors)
     plt.title(title)
     plt.show()
 
 def plot_age_class_pie_chart(data, title):
     plt.figure(figsize=(6, 6))
-    data['Classe_age'].value_counts().plot.pie(autopct='%1.1f%%', shadow=True, startangle=15)
+    colors = ['#008030', '#008080', '#00A86B', '#4CAF50', '#7CFC00']
+    data['Classe_age'].value_counts().plot.pie(autopct='%1.1f%%', shadow=True, startangle=15, colors=colors)
+    plt.title(title)
+    plt.show()
+
+def plot_height_class_pie_chart(data, title):
+    plt.figure(figsize=(6, 6))
+    colors = ['#FF5733', '#FF8C00', '#FFD700', '#FFED00', '#FFFAF0']
+    data['Classe_height'].value_counts().plot.pie(autopct='%1.1f%%', shadow=True, startangle=15, colors=colors)
     plt.title(title)
     plt.show()
 
