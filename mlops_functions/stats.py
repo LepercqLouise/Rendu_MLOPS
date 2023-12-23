@@ -3,12 +3,9 @@ import seaborn as sns
 from matplotlib.ticker import FuncFormatter
 
 
-# Définir une palette de couleurs
-colors = ['#008030', '#008080', '#00A86B', '#4CAF50', '#7CFC00']
-
 def plot_sex_pie_chart(data, title):
     plt.figure(figsize=(6, 6))
-    colors = ['lightblue', 'lightcoral']
+    colors = ['#008030', '#008080', '#00A86B', '#4CAF50', '#7CFC00']
     data['Sex'].value_counts().plot.pie(autopct='%1.1f%%', shadow=True, startangle=15, colors=colors)
     plt.title(title)
     plt.show()
@@ -56,3 +53,18 @@ def plot_noc_distribution(data):
     # Afficher les 16 premiers pays les plus représentés
     print(les_16_premiers)
 
+
+def create_bar_plot(data, x_variable, target_variable='Medal'):
+
+    # Define the custom color palette
+    colors = ['#008030', '#008080', '#00A86B', '#4CAF50', '#7CFC00']
+
+    # Create a bar plot
+    plt.figure(figsize=(12, 6))
+    sns.countplot(x=x_variable, hue=target_variable, data=data, palette=colors)
+    plt.title(f'Répartition des {target_variable} selon leurs {x_variable}')
+    plt.xlabel(x_variable)
+    plt.ylabel('Count')
+    plt.xticks(rotation=45)
+    plt.legend(title=target_variable)
+    plt.show()
