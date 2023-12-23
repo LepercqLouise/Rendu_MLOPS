@@ -469,19 +469,7 @@ def analyze_acm(df):
 
 
 #Fonction pour modelisation
-def define_preprocessor():
-    cat_columns = ['Sex', 'NOC', 'Sport', 'Classe_age', 'Classe_height', 'Classe_weight']
-    
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('cat', OneHotEncoder(drop='first'), cat_columns)
-        ],
-        remainder='drop'
-    )
-    
-    return preprocessor, cat_columns
-
-def preprocess_and_split_data(base_model):
+def preprocess_data(base_model):
     # Affichage des valeurs uniques avant la modification
     print("Valeurs uniques avant la modification :", base_model['Medal'].unique())
 
@@ -500,17 +488,23 @@ def preprocess_and_split_data(base_model):
     X = base_model.drop('Medal', axis=1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
 
-    # Utiliser la fonction pour définir le preprocessor et cat_columns
-    preprocessor, cat_columns = define_preprocessor()
+    # Cette étape permet de ne pas créer des dummy pour réaliser les modèles
+    cat_columns = ['Sex', 'NOC', 'Sport', 'Classe_age', 'Classe_height', 'Classe_weight']
 
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(drop='first'), cat_columns)
+        ],
+        remainder='drop'
+    )
+
+    # Encodage des données d'entraînement
     X_train_encoded = preprocessor.fit_transform(X_train)
-    X_test_encoded = preprocessor.transform(X_test)
 
-    # Convertir la matrice creuse en DataFrame tout en conservant les noms de colonnes
-    X_train_encoded = pd.DataFrame.sparse.from_spmatrix(X_train_encoded, columns=preprocessor.get_feature_names_out(cat_columns))
-    X_test_encoded = pd.DataFrame.sparse.from_spmatrix(X_test_encoded, columns=preprocessor.get_feature_names_out(cat_columns))
+    # Encodage des données de test
+    X_test_encoded = preprocessor.fit_transform(X_test)
 
-    return X_train_encoded, X_test_encoded, y_train, y_test, preprocessor, cat_columns
+    return X_train, X_test, y_train, y_test, cat_columns, preprocessor, X_train_encoded, X_test_encoded
 
 
 #Fonction regression logistique 
@@ -696,6 +690,7 @@ def choose_k_and_evaluate_knn(X_train_encoded, X_test_encoded, y_train, y_test, 
 # Fonction interpretation modele logistique
 def analyze_logistic_regression(LG, preprocessor, X_train_encoded, cat_columns):
     # Obtenez les coefficients directeurs associés aux modalités
+    print("Les coefficients directeurs de la régression logistique")
     coefficients = LG.coef_
 
     # Obtenez le nom des colonnes catégorielles après la transformation
@@ -712,10 +707,12 @@ def analyze_logistic_regression(LG, preprocessor, X_train_encoded, cat_columns):
         print(f"{variable}: {coef}")
 
     # Obtenez le coefficient de l'individu de référence
+    print("Le coefficient directeur de l'individu de référence")
     intercept = LG.intercept_
     print(f"Intercept: {intercept}")
 
     # Obtenez les probabilités prédites
+    print("Les significativités des modalités")
     predicted_probabilities = LG.predict_proba(X_train_encoded)
 
     # Calculez les z-scores des coefficients
