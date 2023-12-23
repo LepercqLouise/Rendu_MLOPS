@@ -56,10 +56,9 @@ def plot_noc_distribution(data):
 
 def create_bar_plot(data, x_variable, target_variable='Medal'):
 
-    # Define the custom color palette
+    #palette de couleur
     colors = ['#008030', '#008080', '#00A86B', '#4CAF50', '#7CFC00']
 
-    # Create a bar plot
     plt.figure(figsize=(12, 6))
     sns.countplot(x=x_variable, hue=target_variable, data=data, palette=colors)
     plt.title(f'Répartition des {target_variable} selon leurs {x_variable}')
@@ -67,4 +66,25 @@ def create_bar_plot(data, x_variable, target_variable='Medal'):
     plt.ylabel('Count')
     plt.xticks(rotation=45)
     plt.legend(title=target_variable)
+    plt.show()
+
+#Statistique pour les regroupements
+
+def plot_distribution_numeric_variable(data, variable, color='#008030'):
+    
+    plt.figure(figsize=(8, 6))
+    sns.histplot(data[variable], bins=30, kde=True, color=color, stat='density', element='bars', common_norm=False)
+    sns.kdeplot(data[variable], color='red', linewidth=2)
+    plt.title(f'Répartition de la variable {variable}')
+    plt.xlabel(variable)
+    plt.ylabel('Densité')
+    plt.show()
+
+#Fonction pour valeur abberante
+def plot_boxplot_medal_vs_numeric_variable(data, variable, color='#008030'):
+    
+    plt.figure(figsize=(8, 6))
+    sns.boxplot(x=data['Medal'], y=data[variable], color=color)
+    plt.title(f'Boîte à moustaches de la variable {variable} selon la médaille')
+    plt.xlabel('Médaille')
     plt.show()
